@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>The Obsidian Lens | CRUD Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background": "#0e0e10",
+                        "surface": "#0e0e10",
+                        "surface-container": "#19191c",
+                        "surface-container-low": "#131315",
+                        "surface-container-high": "#1f1f22",
+                        "surface-container-highest": "#262528",
+                        "primary": "#a1faff",
+                        "primary-container": "#00f4fe",
+                        "secondary": "#ac89ff",
+                        "on-background": "#f9f5f8",
+                        "on-surface": "#f9f5f8",
+                        "on-surface-variant": "#adaaad",
+                        "outline-variant": "#48474a",
+                        "error": "#ff716c"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Manrope', sans-serif; }
+        .glass-panel { background: rgba(38, 37, 40, 0.4); backdrop-filter: blur(20px); }
+        .ghost-border { border: 1px solid rgba(72, 71, 74, 0.2); }
+    </style>
+</head>
+<body class="bg-background text-on-background">
+    <!-- Sidebar -->
+    <aside class="flex flex-col h-screen w-64 fixed left-0 top-0 border-r border-outline-variant/20 bg-surface-container-low py-8 px-4 z-50">
+        <div class="mb-10 px-2">
+            <h1 class="text-xl font-bold tracking-tighter text-on-surface">The Obsidian Lens</h1>
+            <p class="text-[10px] uppercase tracking-widest text-on-surface-variant opacity-60">OMS Command</p>
+        </div>
+        <nav class="flex-1 space-y-2">
+            <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface bg-surface-container-high border-r-2 border-primary-container" href="/">
+                <span class="material-symbols-outlined text-primary">dashboard</span>
+                <span>Dashboard</span>
+            </a>
+            <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" href="/api/orders/view-orders">
+                <span class="material-symbols-outlined">shopping_cart</span>
+                <span>Order Stream</span>
+            </a>
+        </nav>
+
+    </aside>
+
+    <!-- Header -->
+    <header class="h-16 px-8 ml-64 fixed top-0 right-0 w-[calc(100%-16rem)] z-40 bg-background/80 backdrop-blur-xl border-b border-outline-variant/10 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <h2 class="font-headline font-bold text-lg">System Dashboard</h2>
+        </div>
+        <button onclick="initData()" class="bg-gradient-to-r from-primary to-primary-container text-black px-6 py-2 rounded-full font-bold text-sm hover:opacity-90 transition-all">
+            + New Order (Batch)
+        </button>
+    </header>
+
+    <!-- Main -->
+    <main class="ml-64 pt-24 px-12 pb-16 min-h-screen">
+        <!-- Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <div class="glass-panel ghost-border p-8 rounded-3xl relative overflow-hidden group">
+                <div class="absolute -right-8 -top-8 w-32 h-32 bg-primary/10 blur-3xl group-hover:bg-primary/20 transition-all"></div>
+                <div class="relative z-10">
+                    <span class="text-on-surface-variant font-headline text-xs font-bold tracking-widest uppercase mb-4 block">Total System Revenue</span>
+                    <h2 class="text-5xl font-headline font-extrabold tracking-tighter text-on-surface">$<%= totalSum.toLocaleString() %></h2>
+                    <div class="flex items-center gap-2 text-primary-container mt-2">
+                        <span class="material-symbols-outlined text-sm">payments</span>
+                        <span class="text-xs font-bold">Aggregated from <%= orders.length %> orders</span>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-panel ghost-border p-8 rounded-3xl relative overflow-hidden group">
+                <div class="absolute -right-8 -top-8 w-32 h-32 bg-secondary/10 blur-3xl group-hover:bg-secondary/20 transition-all"></div>
+                <div class="relative z-10">
+                    <span class="text-on-surface-variant font-headline text-xs font-bold tracking-widest uppercase mb-4 block">Total Somi Products</span>
+                    <h2 class="text-5xl font-headline font-extrabold tracking-tighter text-on-surface"><%= somiCount %></h2>
+                    <div class="flex items-center gap-2 text-secondary mt-2">
+                        <span class="material-symbols-outlined text-sm">package_2</span>
+                        <span class="text-xs font-bold">Current active inventory count</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="mb-6 flex justify-between items-end">
+            <div>
+                <h3 class="text-2xl font-headline font-bold text-on-surface tracking-tight">Active Order Stream</h3>
+                <p class="text-on-surface-variant text-sm mt-1">Real-time data from MongoDB OrderCollection</p>
+            </div>
+        </div>
+        
+        <div class="surface-container rounded-3xl overflow-hidden ghost-border">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-container-low/50">
+                        <th class="px-8 py-6 text-xs font-headline font-bold text-on-surface-variant uppercase tracking-widest">No</th>
+                        <th class="px-8 py-6 text-xs font-headline font-bold text-on-surface-variant uppercase tracking-widest">Product name</th>
+                        <th class="px-8 py-6 text-xs font-headline font-bold text-on-surface-variant uppercase tracking-widest">Price</th>
+                        <th class="px-8 py-6 text-xs font-headline font-bold text-on-surface-variant uppercase tracking-widest">Quantity</th>
+                        <th class="px-8 py-6 text-xs font-headline font-bold text-on-surface-variant uppercase tracking-widest">Address</th>
+                        <th class="px-8 py-6 text-xs font-headline font-bold text-on-surface-variant uppercase tracking-widest text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-outline-variant/5">
+                    <% let counter = 1; %>
+                    <% orders.forEach(order => { %>
+                        <% order.products.forEach(product => { %>
+                            <tr class="group hover:bg-surface-container-highest transition-all">
+                                <td class="px-8 py-5 text-sm font-headline text-on-surface-variant"><%= counter++ %></td>
+                                <td class="px-8 py-5">
+                                    <span class="font-bold text-on-surface group-hover:text-primary transition-colors"><%= product.product_name %></span>
+                                </td>
+                                <td class="px-8 py-5 text-sm font-headline text-on-surface-variant">$<%= product.price.toFixed(2) %></td>
+                                <td class="px-8 py-5 text-sm font-headline font-bold"><%= product.quantity %></td>
+                                <td class="px-8 py-5 text-sm font-headline text-on-surface-variant"><%= order.delivery_address %></td>
+                                <td class="px-8 py-5 text-sm font-headline text-right">
+                                    <button onclick="editAddress('<%= order.orderid %>', '<%= order.delivery_address %>')" class="p-2 text-primary hover:bg-primary/20 rounded-lg transition-all mr-2">
+                                        <span class="material-symbols-outlined text-sm">edit</span>
+                                    </button>
+                                    <button onclick="deleteOrder('<%= order.orderid %>')" class="p-2 text-error hover:bg-error/20 rounded-lg transition-all">
+                                        <span class="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Background glow -->
+    <div class="fixed bottom-0 right-0 w-[50vw] h-[512px] bg-primary/5 blur-[120px] pointer-events-none -z-10"></div>
+
+    <!-- Scripts -->
+    <script>
+        async function initData() {
+            if(!confirm('This will insert example orders from the exam paper. Continue?')) return;
+            try {
+                const res = await fetch('/api/orders/init', { method: 'POST' });
+                if(res.ok) window.location.reload();
+                else {
+                    const error = await res.json();
+                    alert('Initialization failed: ' + error.message);
+                }
+            } catch (err) {
+                alert('Network error during initialization');
+            }
+        }
+
+
+
+        async function deleteOrder(orderid) {
+            if(!confirm(`Are you sure you want to delete Order #${orderid}?`)) return;
+            try {
+                const res = await fetch(`/api/orders/${orderid}`, { method: 'DELETE' });
+                if(res.ok) window.location.reload();
+                else alert('Failed to delete order #' + orderid);
+            } catch (err) {
+                alert('Network error while deleting order');
+            }
+        }
+
+        async function editAddress(orderid, currentAddress) {
+            const newAddress = prompt('Enter new delivery address:', currentAddress);
+            if(newAddress === null || newAddress === currentAddress) return;
+            
+            try {
+                const res = await fetch('/api/orders/update-address', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderid, address: newAddress })
+                });
+                if(res.ok) window.location.reload();
+                else alert('Failed to update address for order #' + orderid);
+            } catch (err) {
+                alert('Network error while updating address');
+            }
+        }
+
+    </script>
+</body>
+</html>
